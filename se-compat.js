@@ -81,35 +81,35 @@ sbotClient.on("Twitch.ChatMessage", ({data}) => {
     dispatchSEEvent("message",
                     {service: "twitch",
                      data: {
-                        "time": Date.now(), // 1552400352142,
-                        "tags": {
-                            /*
-                            "badges": "broadcaster/1",
-                            "color": "#641FEF",
-                            "display-name": "SenderName",
-                            "emotes": "25:5-9",
-                            "flags": "",
-                            "id": "885d1f33-8387-4206-a668-e9b1409a998b",
-                            "mod": "0",
-                            "room-id": "85827806",
-                            "subscriber": "0",
-                            "tmi-sent-ts": "1552400351927",
-                            "turbo": "0",
-                            "user-id": "85827806",
-                            "user-type": ""
-                            */
-                        },
-                        "nick": data.user.login, // "sendername",
-                        "userId": data.user.id, // "123123",
-                        "displayName": data.user.name, // "SenderName",
-                        "displayColor": data.user.color, // "#641FEF",
-                        "badges": data.user.badges.map(convertBadge),
-                        "channel": data?.sharedChatSource?.login ?? data.user.login,  // "channelname",
-                        "text": data.text, // "Test Kappa test",
-                        "isAction": data.meta.isMe, // false, ( /me )
-                        "emotes": data.emotes.map(convertEmote),
-                        "msgId": data.messageId // "885d1f33-8387-4206-a668-e9b1409a99Xb"
-                    }}
+                         "time": Date.now(), // 1552400352142,
+                         "tags": {
+                             /* These seem to be raw tags from the IRC message, which streamer.bot doesn't provide
+                                "badges": "broadcaster/1",
+                                "color": "#641FEF",
+                                "display-name": "SenderName",
+                                "emotes": "25:5-9",
+                                "flags": "",
+                                "id": "885d1f33-8387-4206-a668-e9b1409a998b",
+                                "mod": "0",
+                                "room-id": "85827806",
+                                "subscriber": "0",
+                                "tmi-sent-ts": "1552400351927",
+                                "turbo": "0",
+                                "user-id": "85827806",
+                                "user-type": ""
+                             */
+                         },
+                         "nick": data.user.login, // "sendername",
+                         "userId": data.user.id, // "123123",
+                         "displayName": data.user.name, // "SenderName",
+                         "displayColor": data.user.color, // "#641FEF",
+                         "badges": data.user.badges.map(convertBadge),
+                         "channel": _WIDGET_DATA.channel.username, // "channelname",
+                         "text": data.text, // "Test Kappa test",
+                         "isAction": data.meta.isMe, // false, ( /me )
+                         "emotes": data.emotes.map(convertEmote),
+                         "msgId": data.messageId // "885d1f33-8387-4206-a668-e9b1409a99Xb"
+                     }}
                    );
 });
 // message deleted
