@@ -70,13 +70,17 @@ function dispatchSEEvent(listener, data) {
             event: data
         }
     });
+    console.log("Dispatching SE event", e);
     window.dispatchEvent(e);
 }
 
 // Chat message
 sbotClient.on("Twitch.ChatMessage", ({data}) => {
+
+    console.log("Processing twitch message: ", data);
     dispatchSEEvent("message",
-                    {data: {
+                    {service: "twitch",
+                     data: {
                         "time": Date.now(), // 1552400352142,
                         "tags": {
                             /*
@@ -95,12 +99,12 @@ sbotClient.on("Twitch.ChatMessage", ({data}) => {
                             "user-type": ""
                             */
                         },
-                        "nick": data.user.name, // "sendername",
+                        "nick": data.user.login, // "sendername",
                         "userId": data.user.id, // "123123",
-                        "displayName": data.user.name, // "senderName",
+                        "displayName": data.user.name, // "SenderName",
                         "displayColor": data.user.color, // "#641FEF",
                         "badges": data.user.badges.map(convertBadge),
-                        "channel": data?.sharedChatSource?.login,  // "channelname",
+                        "channel": data?.sharedChatSource?.login ?? data.user.login,  // "channelname",
                         "text": data.text, // "Test Kappa test",
                         "isAction": data.meta.isMe, // false, ( /me )
                         "emotes": data.emotes.map(convertEmote),
@@ -163,16 +167,16 @@ const SE_API = {
 
     counters: {
         get: async key => {
-            return JSON.parse(await client.getGlobal(key, true));
+            return JSON.parse(await sbotClient.getGlobal(key, true));
         }
     },
     store: {
         get: async key => {
-            return JSON.parse(await client.getGlobal(key, true));
+            return JSON.parse(await sbotClient.getGlobal(key, true));
         },
         set: (key, value) => {
             // setGlobal isn't a real thing
-            return client.setGlobal(JSON.stringify(key), value, true);
+            return sbotClient.setGlobal(JSON.stringify(key), value, true);
             // TODO: Emit a kvstore:update event
         }
     },
@@ -214,7 +218,7 @@ function convertBadge(sbBadge) {
         version: `${sbBadge.version}`, // "1",
         type: sbBadge.name, // "broadcaster",
         url: sbBadge.imageUrl, // "https://static-cdn.jtvnw.net/badges/v1/5527c58c-fb7d-422d-b71b-f309dcb85cc1/3",
-        description: sbBadge.info // "Broadcaster"
+        description: sbBadge.name // There's an .info, but it is always blank.
     };
 }
 
