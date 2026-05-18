@@ -9,8 +9,8 @@ const OVERLAY_PATH = `streamelements-export-whazzittoya-2026-05-16/overlays/${OV
 async function load() {
     const overlayInfo = await (await fetch(OVERLAY_PATH)).json();
 
-    document.body.style.width = convertToPx(overlayInfo.settings.width);
-    document.body.style.height = convertToPx(overlayInfo.settings.height);
+    document.body.style.width = convertToPx(overlayInfo?.settings?.width ?? "1920px");
+    document.body.style.height = convertToPx(overlayInfo?.settings?.height ?? "1080px");
     
     const widget = overlayInfo.widgets[0];
     console.log("widget: ", widget);
