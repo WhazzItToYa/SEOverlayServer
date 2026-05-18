@@ -132,15 +132,23 @@ sbotClient.on("Twitch.UserTimedOut", ({data: {targetUser: {id}}}) =>  {
     dispatchSEEvent("delete-messages", {userId: id});
 });
 
-// button click (what would the sbot equivalent of that be?)
+//////////////////////////////////////////
+// SE Event "widget-button" (button click) (what would the sbot equivalent of that be?)
 
 //////////////////////////////////////////
 // SE Event "kvstore:update"
+// SE Event "bot:counter"
 
 sbotClient.on("Misc.GlobalVariableUpdated", ({event, data: {name, newValue}}) => {
     dispatchSEEvent("kvstore:update", {
         data: {
             key: `customWidget.${name}`,
+            value: JSON.parse(newValue)
+        }
+    });
+    dispatchSEEvent("bot:counter", {
+        data: {
+            counter: name,
             value: JSON.parse(newValue)
         }
     });
