@@ -20,7 +20,7 @@ async function load() {
     const widgetHtml = replaceFieldData(widget.variables.html, widgetData);
     const rawWidgetCss = replaceFieldData(widget.variables.css, widgetData);
     const widgetCss = await inlineCssImports(rawWidgetCss);
-    const widgetJs = widget.variables.js;
+    const widgetJs = replaceJsFieldData(widget.variables.js, widgetData);
 
     const left = convertToPx(widget.css.left);
     const top = convertToPx(widget.css.top);
@@ -72,7 +72,7 @@ async function load() {
       </script>
       <script type="text/javascript" src="se-compat.js"></script>
       <script>
-        ${widget.variables.js}
+        ${widgetJs}
       </script>
   </body>
 </html>
@@ -95,8 +95,16 @@ async function load() {
 }
 load();
 
+// Replaces {{KEY}} with the value for KEY
 function replaceFieldData(template, values) {
     return template.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
+        return key in values ? values[key] : match;
+    });
+}
+
+// Replaces {KEY} with the value for KEY, in a javascritp document.
+function replaceJsFieldData(template, values) {
+    return template.replace(/(?<!\$)\{([^}]+)\}/g, (match, key) => {
         return key in values ? values[key] : match;
     });
 }
