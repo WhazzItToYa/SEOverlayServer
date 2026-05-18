@@ -203,8 +203,9 @@ const SE_API = {
             return JSON.parse(await sbotClient.getGlobal(key, true));
         },
         set: (key, value) => {
-            // setGlobal isn't a real thing
-            return sbotClient.setGlobal(key, JSON.stringify(value), true);
+            return sbotClient.doAction("SEOverlay Set Global",
+                                       {globalName: key,
+                                        globalValue: JSON.stringify(value)});
         }
     },
 
