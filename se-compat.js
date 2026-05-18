@@ -1,10 +1,7 @@
-const URL_PARAMS = new URLSearchParams(window.location.search);
-const SB_HOST = URL_PARAMS.get('sbHost') || "127.0.0.1";
-const SB_PORT = URL_PARAMS.get('sbPort') || 8080;
-
 const sbotClient = new StreamerbotClient({
-    host: SB_HOST,
-    port: SB_PORT,
+    host: _WIDGET_DATA.streamerbotClient.host,
+    port: _WIDGET_DATA.streamerbotClient.port,
+    endpoint: _WIDGET_DATA.streamerbotClient.endpoint,
     onConnect: sbotConnected,
     onDisconnect: sbotDisconnected,
     onError: sbotError
@@ -25,6 +22,8 @@ function bindEvent(element, eventName, eventHandler) {
     }
 }
 
+// This is just for interfacing with the SE layer in the parent host
+// document from StreamElements. Probably completely irrelevant for Streamer.bot.
 bindEvent(window, 'message', function (event) {
     const data = event.data;
     if (data.listener && SE_API.responses[data.listener]) {
@@ -62,6 +61,7 @@ bindEvent(window, 'message', function (event) {
 //
 // StreamElements event emulation
 //
+//////////////////////////////////////////////////////////////////////
 
 function dispatchSEEvent(listener, data) {
     const e = new CustomEvent('onEventReceived', {
@@ -74,7 +74,9 @@ function dispatchSEEvent(listener, data) {
     window.dispatchEvent(e);
 }
 
-// Chat message
+//////////////////////////////////////////
+// SE Event "message" (twitch)
+//
 sbotClient.on("Twitch.ChatMessage", ({data}) => {
 
     console.log("Processing twitch message: ", data);
@@ -112,11 +114,17 @@ sbotClient.on("Twitch.ChatMessage", ({data}) => {
                      }}
                    );
 });
-// message deleted
+
+//////////////////////////////////////////
+// SE Event "delete-message" (twitch)
+
 sbotClient.on("Twitch.ChatMessageDeleted", ({data: {messageId}}) => {
     dispatchSEEvent("delete-message", {msgId: messageId});
 });
-// Mulitple messages deleted because of ban/timeout
+
+//////////////////////////////////////////
+// SE Event "delete-messages" (twitch)
+
 sbotClient.on("Twitch.UserBanned", ({data: {targetUser: {id}}}) => {
     dispatchSEEvent("delete-messages", {userId: id});
 });
@@ -125,6 +133,21 @@ sbotClient.on("Twitch.UserTimedOut", ({data: {targetUser: {id}}}) =>  {
 });
 
 // button click (what would the sbot equivalent of that be?)
+
+//////////////////////////////////////////
+// SE Event "kvstore:update"
+
+sbotClient.on("Misc.GlobalVariableUpdated", ({event, data: {name, newValue}}) => {
+    dispatchSEEvent("kvstore:update", {
+        data: {
+            key: `customWidget.${name}`,
+            value: JSON.parse(newValue)
+        }
+    });
+});
+
+//////////////////////////////////////////
+// SE Event onWidgetLoaded
 
 async function sbotConnected() {
     console.log("Connected to Streamer.bot");
@@ -156,6 +179,11 @@ async function sbotConnected() {
 }
 
 
+//////////////////////////////////////////////////////////////////////
+//
+// StreamElements API emulation
+//
+//////////////////////////////////////////////////////////////////////
 
 const SE_API = {
     responses: {},
@@ -176,10 +204,10 @@ const SE_API = {
         },
         set: (key, value) => {
             // setGlobal isn't a real thing
-            return sbotClient.setGlobal(JSON.stringify(key), value, true);
-            // TODO: Emit a kvstore:update event
+            return sbotClient.setGlobal(key, JSON.stringify(value), true);
         }
     },
+
     // NOT PORTED
     
     sendMessage: (message, data = {}) => {

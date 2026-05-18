@@ -1,12 +1,18 @@
 const URL_PARAMS = new URLSearchParams(window.location.search);
+const SB_HOST = URL_PARAMS.get('host') ?? "127.0.0.1";
+const SB_PORT = URL_PARAMS.get('port') ?? 8080;
+const SB_ENDPOINT = URL_PARAMS.get('endpoint') ?? "/";
 const OVERLAY = URL_PARAMS.get('overlay');
 
 const OVERLAY_PATH = `streamelements-export-whazzittoya-2026-05-16/overlays/${OVERLAY}.json`;
 
 async function load() {
-    const overlay = await (await fetch(OVERLAY_PATH)).json();
+    const overlayInfo = await (await fetch(OVERLAY_PATH)).json();
 
-    const widget = overlay.widgets[0];
+    document.body.style.width = convertToPx(overlayInfo.settings.width);
+    document.body.style.height = convertToPx(overlayInfo.settings.height);
+    
+    const widget = overlayInfo.widgets[0];
     console.log("widget: ", widget);
     
 
@@ -44,9 +50,13 @@ async function load() {
   <body>
       ${widgetHtml}
 
-      <script src="se-compat.js"></script>
       <script>
         let _WIDGET_DATA = {
+            "streamerbotClient": {
+                "host": "${SB_HOST}",
+                "port": ${SB_PORT},
+                "endpoint": "${SB_ENDPOINT}"
+            },
             "currency": {
                 "name": "U.S. Dollar",
                 "code": "USD",
@@ -59,6 +69,9 @@ async function load() {
             }
         };
 
+      </script>
+      <script type="text/javascript" src="se-compat.js"></script>
+      <script>
         ${widget.variables.js}
       </script>
   </body>
