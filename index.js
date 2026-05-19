@@ -4,7 +4,8 @@ const SB_PORT = URL_PARAMS.get('port') ?? 8080;
 const SB_ENDPOINT = URL_PARAMS.get('endpoint') ?? "/";
 const OVERLAY = URL_PARAMS.get('overlay');
 
-const OVERLAY_PATH = `streamelements-export-whazzittoya-2026-05-16/overlays/${OVERLAY}.json`;
+const OVERLAY_ROOT = "streamelements-export-whazzittoya-2026-05-16/overlays";
+const OVERLAY_PATH = `${OVERLAY_ROOT}/${OVERLAY}.json`;
 
 async function load() {
     const overlayInfo = await (await fetch(OVERLAY_PATH)).json();
@@ -15,12 +16,12 @@ async function load() {
     const widget = overlayInfo.widgets[0];
     console.log("widget: ", widget);
     
-
-    const widgetData = widget.variables.fieldData;
-    const widgetHtml = replaceFieldData(widget.variables.html, widgetData);
-    const rawWidgetCss = replaceFieldData(widget.variables.css, widgetData);
+    const assetMap = await loadAssetManifest(`${OVERLAY_ROOT}/assets/asset-manifest.json`);
+    const widgetData = replaceAssetValues(widget.variables.fieldData, assetMap);
+    const widgetHtml = replaceFieldData(replaceAssets(widget.variables.html, assetMap), widgetData);
+    const rawWidgetCss = replaceFieldData(replaceAssets(widget.variables.css, assetMap), widgetData);
     const widgetCss = await inlineCssImports(rawWidgetCss);
-    const widgetJs = replaceJsFieldData(widget.variables.js, widgetData);
+    const widgetJs = replaceJsFieldData(replaceAssets(widget.variables.js, assetMap), widgetData);
 
     const left = convertToPx(widget.css.left);
     const top = convertToPx(widget.css.top);
@@ -164,4 +165,44 @@ async function inlineCssImports(cssText, fetchFn = fetch) {
     }
 
     return process(cssText);
+}
+
+// Loads the asset manifest and returns it as a map of originalUrl --> newUrl
+async function loadAssetManifest(path)
+{
+    let manifest = await (await fetch(path)).json();
+    return Object.fromEntries(
+        Object.entries(manifest).map(([filename, obj]) => [
+            obj.originalUrl,
+            `${OVERLAY_ROOT}/assets/${filename}`
+        ])
+    );
+}
+
+// Replaces any field which is an asset in the assetMap, with its new url
+function replaceAssetValues(fields, assetMap) {
+    const result = {};
+
+    for (const [key, value] of Object.entries(fields)) {
+        result[key] = value in assetMap ? assetMap[value] : value;
+    }
+
+    return result;
+}
+
+// Replaces any substring in SOURCE matching an asset in the assetMap, with its mapped URL.
+function replaceAssets(source, assetMap) {
+    // Escape regex special characters in keys
+    const escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Sort keys longest-first to avoid partial shadowing
+    const keys = Object.keys(assetMap).sort((a, b) => b.length - a.length);
+
+    if (keys.length === 0) return source;
+
+    // Build a single alternation regex: (key1|key2|key3)
+    const pattern = keys.map(escape).join("|");
+    const regex = new RegExp(pattern, "g");
+
+    return source.replace(regex, match => assetMap[match]);
 }
