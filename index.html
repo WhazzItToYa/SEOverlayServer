@@ -1,15 +1,28 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <script src="index.js"></script>
+        <script src="index.js" defer></script>
         <style>
-            * {
+            html, body, iframe {
                 margin: 0px;
                 padding: 0px;
                 border: 0px;
             }
+            #catalog {
+            }
+            .heart {
+                display: none;
+            }
+            .favorite .heart {
+                display: inline;
+            }
         </style>
     </head>
     <body>
+        <div id="catalog" style="display: none">
+            <ul>
+                <li id="catalogTemplate"><span class="heart">&#x2665;&#xfe0f;</span><a></a></li>
+            </ul>
+        </div>
     </body>
 </html>

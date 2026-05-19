@@ -2,13 +2,51 @@ const URL_PARAMS = new URLSearchParams(window.location.search);
 const SB_HOST = URL_PARAMS.get('host') ?? "127.0.0.1";
 const SB_PORT = URL_PARAMS.get('port') ?? 8080;
 const SB_ENDPOINT = URL_PARAMS.get('endpoint') ?? "/";
+const EXPORT_ROOT_DEFAULT = "ExportedOverlays";
+const EXPORT_ROOT = URL_PARAMS.get('root') ?? EXPORT_ROOT_DEFAULT;
 const OVERLAY = URL_PARAMS.get('overlay');
 const DISPLAY_ONLY = URL_PARAMS.get('display') === "true";
-
-const OVERLAY_ROOT = "streamelements-export-whazzittoya-2026-05-16/overlays";
+const OVERLAY_ROOT = `${EXPORT_ROOT}/overlays`;
 const OVERLAY_PATH = `${OVERLAY_ROOT}/${OVERLAY}.json`;
 
-async function load() {
+console.log("Running");
+if (OVERLAY) {
+    loadOverlay();
+} else {
+    showCatalog();
+}
+
+async function showCatalog() {
+    console.log("Displaying catalog");
+    const container = document.getElementById("catalog");
+    const templateItem = document.getElementById("catalogTemplate");
+    container.style.display="block";
+    const index = await (await fetch(`${OVERLAY_ROOT}/index.json`)).json();
+    for (const overlay of index) {
+        // Clone a template element to display the details
+        const item = templateItem.cloneNode(true);
+        if (overlay.favorite) item.classList.add("favorite");
+        item.id = overlay._id;
+
+        // Create a link to the live overlay
+        const a = item.querySelector("a");
+        const encodedName = encodeURIComponent(overlay.name);
+        a.href = `index.html?root=${EXPORT_ROOT}&overlay=${encodedName}`;
+        a.innerText = overlay.name;
+
+        // put a link next to it to view the overlay source
+        const viewer = a.cloneNode(true);
+        viewer.href = `index.html?root=${EXPORT_ROOT}&display=true&overlay=${encodedName}`;
+        viewer.innerText = "\u{1F50D}";
+        a.insertAdjacentElement('afterend', viewer);
+        
+        templateItem.insertAdjacentElement('beforebegin', item);
+    }
+    templateItem.parentElement.removeChild(templateItem);
+}
+
+async function loadOverlay() {
+    console.log("Showing overlay");
     const overlayInfo = await (await fetch(OVERLAY_PATH)).json();
 
     const widget = overlayInfo.widgets[0];
@@ -99,7 +137,6 @@ async function load() {
         doc.close();
     }
 }
-load();
 
 // Replaces {{KEY}} with the value for KEY
 function replaceFieldData(template, values) {
