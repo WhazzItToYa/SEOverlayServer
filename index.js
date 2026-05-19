@@ -3,6 +3,7 @@ const SB_HOST = URL_PARAMS.get('host') ?? "127.0.0.1";
 const SB_PORT = URL_PARAMS.get('port') ?? 8080;
 const SB_ENDPOINT = URL_PARAMS.get('endpoint') ?? "/";
 const OVERLAY = URL_PARAMS.get('overlay');
+const DISPLAY_ONLY = URL_PARAMS.get('display') === "true";
 
 const OVERLAY_ROOT = "streamelements-export-whazzittoya-2026-05-16/overlays";
 const OVERLAY_PATH = `${OVERLAY_ROOT}/${OVERLAY}.json`;
@@ -10,9 +11,6 @@ const OVERLAY_PATH = `${OVERLAY_ROOT}/${OVERLAY}.json`;
 async function load() {
     const overlayInfo = await (await fetch(OVERLAY_PATH)).json();
 
-    document.body.style.width = convertToPx(overlayInfo?.settings?.width ?? "1920px");
-    document.body.style.height = convertToPx(overlayInfo?.settings?.height ?? "1080px");
-    
     const widget = overlayInfo.widgets[0];
     console.log("widget: ", widget);
     
@@ -78,21 +76,28 @@ async function load() {
   </body>
 </html>
 `
-
-    const iframe = document.createElement("iframe")
-    iframe.id = "content";
-    iframe.style.position = "absolute";
-    iframe.style.left = left;
-    iframe.style.top = top;
-    iframe.style.width = width;
-    iframe.style.height = height;
-    
-    document.body.appendChild(iframe);
-    const doc = iframe.contentDocument;
-    doc.open();
-    doc.write(html);
-    doc.close();
-
+    if (DISPLAY_ONLY) {
+        const pre = document.createElement("pre");
+        pre.textContent = html;
+        document.body.appendChild(pre);
+    } else {
+        document.body.style.width = convertToPx(overlayInfo?.settings?.width ?? "1920px");
+        document.body.style.height = convertToPx(overlayInfo?.settings?.height ?? "1080px");
+        
+        const iframe = document.createElement("iframe")
+        iframe.id = "content";
+        iframe.style.position = "absolute";
+        iframe.style.left = left;
+        iframe.style.top = top;
+        iframe.style.width = width;
+        iframe.style.height = height;
+        
+        document.body.appendChild(iframe);
+        const doc = iframe.contentDocument;
+        doc.open();
+        doc.write(html);
+        doc.close();
+    }
 }
 load();
 
