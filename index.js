@@ -127,7 +127,7 @@ async function convertOverlay(rawFieldData, rawHtml, rawCss, rawJs, assetMap, wi
     const widgetHtml = replaceFieldData(replaceAssets(rawHtml, assetMap), widgetData);
     const rawWidgetCss = replaceFieldData(replaceAssets(rawCss, assetMap), widgetData);
     const widgetCss = await inlineCssImports(rawWidgetCss);
-    const widgetJs = replaceJsFieldData(replaceAssets(rawJs, assetMap), widgetData);
+    const widgetJs = replaceFieldData(replaceAssets(rawJs, assetMap), widgetData);
     
     return `<!DOCTYPE html>
 <html>
@@ -182,16 +182,10 @@ async function convertOverlay(rawFieldData, rawHtml, rawCss, rawJs, assetMap, wi
 
 // Replaces {{KEY}} with the value for KEY
 function replaceFieldData(template, values) {
-    return template.replace(/\{\{([^\n{}]+)\}\}/g, (match, key) => {
-        return key in values ? values[key] : match;
-    });
-}
-
-// Replaces {KEY} with the value for KEY, in a javascritp document.
-function replaceJsFieldData(template, values) {
-    return template.replace(/(?<!\$)\{([^\n{}]+)\}/g, (match, key) => {
+    return template.replace(/\{\{([^\n{}]+)\}\}|\{([^\n{}]+)\}/g, (match, key1, key2) => {
+        const key = key1 ?? key2
         const replacement = key in values ? values[key] : match;
-        // console.log(`JS Replacement: \n  ${match}\n =>\n  ${replacement}`);
+        console.log(`JS Replacement: \n  ${match}\n =>\n  ${replacement}`);
         return replacement;
     });
 }
