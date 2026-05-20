@@ -2,6 +2,7 @@ const URL_PARAMS = new URLSearchParams(window.location.search);
 const SB_HOST = URL_PARAMS.get('host') ?? "127.0.0.1";
 const SB_PORT = URL_PARAMS.get('port') ?? 8080;
 const SB_ENDPOINT = URL_PARAMS.get('endpoint') ?? "/";
+const OVERLAY_FORMAT = URL_PARAMS.get('format') ?? "desertice"; // https://export.stream/
 const EXPORT_ROOT_DEFAULT = "ExportedOverlays";
 const EXPORT_ROOT = URL_PARAMS.get('root') ?? EXPORT_ROOT_DEFAULT;
 const OVERLAY = URL_PARAMS.get('overlay');
@@ -47,25 +48,88 @@ async function showCatalog() {
 
 async function loadOverlay() {
     console.log("Showing overlay");
-    const overlayInfo = await (await fetch(OVERLAY_PATH)).json();
 
-    const widget = overlayInfo.widgets[0];
-    console.log("widget: ", widget);
+    let rawFieldData, rawHtml,rawCss, rawJs, left, top, width, height, assetMap;
+    let overlayWidth = "1920px";
+    let overlayHeight = "1080px";
     
-    const assetMap = await loadAssetManifest(`${OVERLAY_ROOT}/assets/asset-manifest.json`);
-    const widgetData = replaceAssetValues(widget.variables.fieldData, assetMap);
-    const widgetHtml = replaceFieldData(replaceAssets(widget.variables.html, assetMap), widgetData);
-    const rawWidgetCss = replaceFieldData(replaceAssets(widget.variables.css, assetMap), widgetData);
+    if (OVERLAY_FORMAT === "desertice")
+    {
+        console.log("Loading from desertice export format");
+        const overlayPromise = fetch(OVERLAY_PATH);
+        assetMap = await loadAssetManifest(`${OVERLAY_ROOT}/assets/asset-manifest.json`);
+        const overlayInfo = await (await overlayPromise).json();
+        
+        const widget = overlayInfo.widgets[0];
+        console.log("widget: ", widget);
+        
+        left = convertToPx(widget.css.left);
+        top = convertToPx(widget.css.top);
+        width = convertToPx(widget.css.width);
+        height = convertToPx(widget.css.height);
+        
+        rawFieldData = widget.variables.fieldData;
+        rawHtml = widget.variables.html;
+        rawCss = widget.variables.css;
+        rawJs = widget.variables.js;
+        overlayWidth = convertToPx(overlayInfo?.settings?.width ?? "1920px");
+        overlayHeight = convertToPx(overlayInfo?.settings?.height ?? "1080px");
+        
+    } else { // "raw"
+        console.log("Loading from raw widget format");
+
+        const h = fetch(`${EXPORT_ROOT}/${OVERLAY}/widget.html`);
+        const j = fetch(`${EXPORT_ROOT}/${OVERLAY}/widget.js`);
+        const c = fetch(`${EXPORT_ROOT}/${OVERLAY}/widget.css`);
+        const d = fetch(`${EXPORT_ROOT}/${OVERLAY}/widget.json`);
+
+        rawHtml = await (await h).text();
+        rawCss = await (await c).text();
+        rawFieldData = await (await d).json();
+        rawJs = await (await j).text();
+
+        left = "0px";
+        top = "0px";
+        width = "1920px";
+        height = "1080px";
+        assetMap = {};
+    }
+    
+    const html = await convertOverlay(rawFieldData, rawHtml, rawCss, rawJs, assetMap, width, height);
+
+    if (DISPLAY_ONLY) {
+        const pre = document.createElement("pre");
+        pre.textContent = html;
+        document.body.appendChild(pre);
+    } else {
+        document.body.style.width = overlayWidth;
+        document.body.style.height = overlayHeight;
+        
+        const iframe = document.createElement("iframe")
+        iframe.id = "content";
+        iframe.style.position = "absolute";
+        iframe.style.left = left;
+        iframe.style.top = top;
+        iframe.style.width = width;
+        iframe.style.height = height;
+        
+        document.body.appendChild(iframe);
+        const doc = iframe.contentDocument;
+        doc.open();
+        doc.write(html);
+        doc.close();
+    }
+}
+
+async function convertOverlay(rawFieldData, rawHtml, rawCss, rawJs, assetMap, width, height)
+{
+    const widgetData = replaceAssetValues(rawFieldData, assetMap);
+    const widgetHtml = replaceFieldData(replaceAssets(rawHtml, assetMap), widgetData);
+    const rawWidgetCss = replaceFieldData(replaceAssets(rawCss, assetMap), widgetData);
     const widgetCss = await inlineCssImports(rawWidgetCss);
-    const widgetJs = replaceJsFieldData(replaceAssets(widget.variables.js, assetMap), widgetData);
-
-    const left = convertToPx(widget.css.left);
-    const top = convertToPx(widget.css.top);
-    const width = convertToPx(widget.css.width);
-    const height = convertToPx(widget.css.height);
-
-    const html = `
-<!DOCTYPE html>
+    const widgetJs = replaceJsFieldData(replaceAssets(rawJs, assetMap), widgetData);
+    
+    return `<!DOCTYPE html>
 <html>
     <head>
 	<meta charset="UTF-8">
@@ -113,29 +177,7 @@ async function loadOverlay() {
       </script>
   </body>
 </html>
-`
-    if (DISPLAY_ONLY) {
-        const pre = document.createElement("pre");
-        pre.textContent = html;
-        document.body.appendChild(pre);
-    } else {
-        document.body.style.width = convertToPx(overlayInfo?.settings?.width ?? "1920px");
-        document.body.style.height = convertToPx(overlayInfo?.settings?.height ?? "1080px");
-        
-        const iframe = document.createElement("iframe")
-        iframe.id = "content";
-        iframe.style.position = "absolute";
-        iframe.style.left = left;
-        iframe.style.top = top;
-        iframe.style.width = width;
-        iframe.style.height = height;
-        
-        document.body.appendChild(iframe);
-        const doc = iframe.contentDocument;
-        doc.open();
-        doc.write(html);
-        doc.close();
-    }
+`;
 }
 
 // Replaces {{KEY}} with the value for KEY
