@@ -140,22 +140,23 @@ async function loadOverlay() {
 
 // Replaces {{KEY}} with the value for KEY
 function replaceFieldData(template, values) {
-    return template.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
+    return template.replace(/\{\{([^\n{}]+)\}\}/g, (match, key) => {
         return key in values ? values[key] : match;
     });
 }
 
 // Replaces {KEY} with the value for KEY, in a javascritp document.
 function replaceJsFieldData(template, values) {
-    return template.replace(/(?<!\$)\{([^}]+)\}/g, (match, key) => {
-        return key in values ? values[key] : match;
+    return template.replace(/(?<!\$)\{([^\n{}]+)\}/g, (match, key) => {
+        const replacement = key in values ? values[key] : match;
+        // console.log(`JS Replacement: \n  ${match}\n =>\n  ${replacement}`);
+        return replacement;
     });
 }
 
 // Converts a number into a number of pixels.
 function convertToPx(val) {
     const r = _convertToPx(val);
-    console.log(`Converted '${val}' to '${r}'`);
     return r;
 }
     
