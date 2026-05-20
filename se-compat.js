@@ -80,27 +80,44 @@ function dispatchSEEvent(listener, data) {
 sbotClient.on("Twitch.ChatMessage", ({data}) => {
 
     console.log("Processing twitch message: ", data);
+
+    // We'll do our best to provide the "tags", but that seems to be based
+    // mostly on the IRC tags, some of which have no equivalent in the streamer.bot message.
+    const tags = {
+        "badges": data.user.badges.map(badge => `${badge.name}/${badge.version}`).join(","),
+        "color": data.user.color,
+        "display-name": data.user.name,
+        // "emotes": "emotesv2_ac606c9ca31f4333911050b1c382fe60:8-18",
+        "first-msg": data.meta.firstMessage ? "1" : "0",
+        "flags": "",
+        "id": data.messageId,
+        "mod": data.user.role === 3 ? "1" : "0",
+        "returning-chatter": data.meta.returningChatter ? "1" : "0",
+        "room-id": _WIDGET_DATA.channel.providerId,
+        "subscriber": data.user.subscribed ? "1" : "0",
+        "tmi-sent-ts": `${Date.now()}`,
+        // "turbo": "0",
+        "user-id": data.user.id,
+        "user-type": ""
+    };
+    // For any missing tags, emit a warning message
+    const tagsProxy = new Proxy(tags, {
+        get(target, prop, receiver) {
+            if (prop in target) {
+                // Let normal properties behave normally
+                return Reflect.get(target, prop, receiver);
+            }
+            
+            // Intercept unknown properties
+            console.log(`Unknown or unimplemented tag "${prop}" was read`);
+            return undefined;
+        }
+    });
     dispatchSEEvent("message",
                     {service: "twitch",
                      data: {
                          "time": Date.now(), // 1552400352142,
-                         "tags": {
-                             /* These seem to be raw tags from the IRC message, which streamer.bot doesn't provide
-                                "badges": "broadcaster/1",
-                                "color": "#641FEF",
-                                "display-name": "SenderName",
-                                "emotes": "25:5-9",
-                                "flags": "",
-                                "id": "885d1f33-8387-4206-a668-e9b1409a998b",
-                                "mod": "0",
-                                "room-id": "85827806",
-                                "subscriber": "0",
-                                "tmi-sent-ts": "1552400351927",
-                                "turbo": "0",
-                                "user-id": "85827806",
-                                "user-type": ""
-                             */
-                         },
+                         "tags": tagsProxy,
                          "nick": data.user.login, // "sendername",
                          "userId": data.user.id, // "123123",
                          "displayName": data.user.name, // "SenderName",
