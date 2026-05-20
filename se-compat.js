@@ -109,7 +109,7 @@ sbotClient.on("Twitch.ChatMessage", ({data}) => {
             }
             
             // Intercept unknown properties
-            console.log(`Unknown or unimplemented tag "${prop}" was read`);
+            console.error(`SE Widget trying to access unknown or unimplemented message tag "${prop}"`);
             return undefined;
         }
     });
